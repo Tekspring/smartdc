@@ -2,8 +2,29 @@
 'use strict';
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// init 
+// init
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+function checkMobileDevice() {
+	const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+	// 檢測 iOS 和 Android
+	if (/iPhone|iPad|iPod|Android/i.test(userAgent)) {
+		return true;
+	}
+
+	// 兼容 Safari 瀏覽器可能省略的部分
+	if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
+		// iPad（桌面模式會被偵測為 Mac）
+		return true;
+	}
+
+	return false;
+}
+
+let isMobileDevice = checkMobileDevice();
+
+//alert(isMobileDevice);
 
 // init IndexedDB
 const dbName = 'ImageDatabase';
@@ -60,7 +81,7 @@ function detectBrowser() {
 }
 
 var Browser = detectBrowser();
-console.log("Browser:", Browser);
+console.log("Browser:", Browser, ", isMobileDevice:", isMobileDevice);
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -2505,7 +2526,7 @@ var appCfg =
 	sdVideoRsoW: 120,
 	sdFontFamilyW: 100,
 	sdFontStyleW: 100,
-	sdFontSizeW: 40,
+	sdFontSizeW: 48,
 
 	// text input dialog
 
@@ -2673,7 +2694,7 @@ var drawingToolBarData =
 		["btn_circle", "circle.png", 0, 1],
 		["btn_erase_all", "clearAll.png", 0, 0],
 		["btn_text", "text.png", 0, 1],
-		["btn_configDraw", "config.png", 0, 0],
+		["btn_configDraw", "config2.png", 0, 0],
 	];
 
 var drawingToolBarDataEmpty =
@@ -2883,7 +2904,7 @@ var aboutContent =
 	'<center><img src="css/images/icon/logo 60.png"></img></center>' +
 	'<label><font size="5" color="#FAFAFA"><center>Documate</center></font></label>' +
 	'<BR>' +
-	'<label><font size="2" color="#FAFAFA"><center>Ver : 1.25.0204.2</center></font></label>' +
+	'<label><font size="2" color="#FAFAFA"><center>Ver : 1.25.0207.2</center></font></label>' +
 	'<BR>' +
 	'<div id="companyLink" align="center"><font size="2" color="#88F">Official site : www.inswan.com</font></div>' +
 	'<div id="manualLink" align="center"><font size="2" color="#88F">Email : service@inswan.com</font></div>' +
@@ -3935,7 +3956,7 @@ function initSettingDlg() {
 	curX += (appCfg.sdIconW + appCfg.sdIconScrollGap);
 	createAudioinputScrollBar('settingDlg', 'sdAudioinputScrollbar', appFC.curAudioinputList, curX, curY, appCfg.sdVideoRsoW);
 
-	// test settings
+	// text settings
 	curY += (appCfg.sdIconH + appCfg.sdGroupGap);
 
 	if (0 === appCfg.disableDrawTextSetting) {
@@ -4102,7 +4123,7 @@ function createAudioinputScrollBar(parendId, id, data, startX, startY, width) {
 
 	$(eleId).css('top', (startY + (appCfg.sdIconH - appCfg.sdScrollH) / 2) + 'px');
 	$(eleId).css('left', startX + 'px');
-	$(eleId).css('width', (width * 2 + appCfg.sdIconScrollGap) + 'px');
+	$(eleId).css('width', (width * 2 + appCfg.sdIconScrollGap * 6) + 'px');
 	$(eleId).css('height', appCfg.sdScrollH + 'px');
 	$(eleId).css('position', 'absolute');
 }
@@ -4119,7 +4140,7 @@ function createVideoinputScrollBar(parendId, id, data, startX, startY, width) {
 
 	$(eleId).css('top', (startY + (appCfg.sdIconH - appCfg.sdScrollH) / 2) + 'px');
 	$(eleId).css('left', startX + 'px');
-	$(eleId).css('width', (width * 2 + appCfg.sdIconScrollGap) + 'px');
+	$(eleId).css('width', (width * 2 + appCfg.sdIconScrollGap * 6) + 'px');
 	$(eleId).css('height', appCfg.sdScrollH + 'px');
 	$(eleId).css('position', 'absolute');
 }
@@ -6738,27 +6759,15 @@ function textInputDlgCloseClick() {
 }
 
 function baseDrawText() {
-	var startX, startY;
-	var curY;
-	var textH;
-	var ctx;
-	var content;
-	var curPos;
-	var curStr;
-	var pos;
-	var fontStyle;
-
 	if (0 == getTextInputLength()) return;
 
-	startX = appFC.drawStartX;
-	startY = appFC.drawStartY;
+	const startX = appFC.drawStartX;
+	const startY = appFC.drawStartY;
+	const textH = appFC.fontSize;
+	const ctx = appFC.drawContext;
+	const content = getTextInputContent();
+	let fontStyle = '';
 
-	textH = appFC.fontSize;
-
-	ctx = appFC.drawContext;
-	content = getTextInputContent();
-
-	fontStyle = '';
 	if (appFC.fontBold) fontStyle += 'Bold ';
 	if (appFC.fontItalic) fontStyle += 'Italic ';
 
@@ -6766,23 +6775,12 @@ function baseDrawText() {
 	ctx.strokeStyle = appFC.drawStyle;
 	ctx.font = fontStyle + textH + 'pt' + ' ' + appFC.fontFamily;
 
-	curPos = content;
+	const lines = content.split('\n');
+	const lineHeight = textH * 1.5;
 
-	curY = startY;
-
-	while (-1 != curPos.indexOf('\n')) {
-		curY += textH;
-
-		pos = curPos.indexOf('\n');
-
-		curStr = curPos.substring(0, pos);
-
-		ctx.fillText(curStr, startX, curY);
-
-		curPos = curPos.substring(pos + 1);
-	}
-
-	ctx.fillText(curPos, startX, curY + textH);
+	lines.forEach((line, index) => {
+		ctx.fillText(line, startX, startY + index * lineHeight);
+	});
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -11322,6 +11320,7 @@ function updateTranslatedString() {
 		["btn_circle", "btnFilledEllipse"],
 		["btn_erase_all", "btnEraseAll"],
 		["btn_text", "btnText"],
+		["btn_configDraw", "btnConfigDraw"],
 
 		["btn_setting", "btnSetting"],
 		["btn_capture", "btnCapture"],
@@ -12781,8 +12780,12 @@ var recordStream;
 var recordingFormat;
 var previewStream;
 
+let initialOrientation;  // 紀錄錄影開始時的方向
+
 async function StartRecord() {
     console.log("Start Recording");
+
+    initialOrientation = getCurrentRotation();
 
     if (!IsRecording)//(appFC.imgW != 1280 || appFC.imgH != 720)
     {
@@ -12834,30 +12837,33 @@ async function StartRecord() {
     let canvas = document.getElementById("previewArea-videoOrg");
     console.log(canvas);
 
-    // const audioStream = await navigator.mediaDevices.getUserMedia({
-    //     audio: { deviceId: { exact: CurrentAudioDevice.deviceId } }
-    // });
+    const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: CurrentAudioDevice.deviceId } }
+    });
 
-    const audioStream = null;
+    //const audioStream = null;
 
 
     //window.stream.getAudioTracks()[0].enabled = true;
-    let canvasStream = canvas.captureStream();
+
+    let canvasStream;
+
+    if (isMobileDevice) {
+        canvasStream = canvas.captureStream(30);
+    } else {
+        canvasStream = videoElement.captureStream();
+    }
+
     console.log(canvasStream);
 
-    //合併音訊和視訊流
-    // recordStream = new MediaStream([
-    //     ...canvasStream.getTracks(),
-    //     ...audioStream.getTracks()
-    // ]);
-
-
     if (audioStream && audioStream.getTracks()) {
+        console.log("Audio Enable");
         recordStream = new MediaStream([
             ...canvasStream.getTracks(),
             ...audioStream.getTracks()
         ]);
     } else {
+        console.log("Audio Disable");
         recordStream = new MediaStream(canvasStream.getTracks());
     }
 
@@ -12883,10 +12889,10 @@ async function StartRecord() {
         console.log("using webm vp8 vorbis");
         mimeType = 'video/webm; codecs="vp8, vorbis"';
         recordingFormat = 'webm';
-    } else if (MediaRecorder.isTypeSupported('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) {
-        console.log("using video/mp4; codecs=avc1.42E01E, mp4a.40.2");
-        mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
-        recordingFormat = 'mp4';
+        // } else if (MediaRecorder.isTypeSupported('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) {
+        //     console.log("using video/mp4; codecs=avc1.42E01E, mp4a.40.2");
+        //     mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        //     recordingFormat = 'mp4';
     } else if (MediaRecorder.isTypeSupported('video/webm')) {
         console.log("using webm");
         mimeType = 'video/webm';
@@ -12898,8 +12904,8 @@ async function StartRecord() {
     }
 
     var options = {
-        audioBitsPerSecond: 128000,
-        videoBitsPerSecond: 5000000,
+        audioBitsPerSecond: 96000,//128000,
+        videoBitsPerSecond: 256 * 8 * 1000,//5000000,
         mimeType: mimeType //'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
     };
 
@@ -13218,7 +13224,6 @@ async function makeDeviceList() {
 }
 
 async function selectVideoDefaultDevice(devices) {
-    let device = null;
 
     const videoDevices = devices
         .filter(device =>
@@ -13229,8 +13234,16 @@ async function selectVideoDefaultDevice(devices) {
         );
 
     for (let i = 0; i < videoDevices.length; i++) {
+        if (checkDC(videoDevices[i])) {
+            if (await testDeviceAvailability(videoDevices[i].deviceId)) {
+                return videoDevices[i];
+            }
+        }
+    }
+
+    for (let i = 0; i < videoDevices.length; i++) {
         if (await testDeviceAvailability(videoDevices[i].deviceId)) {
-            device = videoDevices[i];
+            return videoDevices[i];
         } else {
             console.log("XXX");
             if (PreviousDevices)
@@ -13242,19 +13255,11 @@ async function selectVideoDefaultDevice(devices) {
                 optionToRemove.remove();
             }
         }
-        // if (i == 0) {
-        //     device = videoDevices[0];
-        // }
-
-        // if (checkDC(videoDevices[i])) {
-        //     device = videoDevices[i];
-        //     break;
-        // }
     }
 
     //console.log("Select Video Device", device);
 
-    return device;
+    return null;
 }
 
 async function selectAudioDefaultDevice(devices) {
@@ -13284,8 +13289,8 @@ async function selectAudioDefaultDevice(devices) {
 // 請求權限並顯示裝置選項
 async function initializeDevices() {
     try {
-        //const hasPermissions = await checkMediaPermissions();
         const hasPermissions = await checkCameraPermission();
+        await checkAudioPermission();
 
         if (hasPermissions) {
             PreviousDevices = await makeDeviceList();
@@ -13323,19 +13328,34 @@ async function initializeDevices() {
 
 async function checkCameraPermission() {
     try {
-        // 嘗試請求攝影機權限
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        console.log("Camera / Audio permission granted.");
-
-        // 停止攝影機流
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("Camera permission granted.");
         stream.getTracks().forEach(track => track.stop());
-
         return true;
     } catch (error) {
         if (error.name === "NotAllowedError") {
             console.warn("Camera permission denied.");
         } else if (error.name === "NotFoundError") {
             console.warn("No camera found on the device.");
+        } else {
+            console.error("An error occurred:", error);
+        }
+
+        return false;
+    }
+}
+
+async function checkAudioPermission() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Audio permission granted.");
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+    } catch (error) {
+        if (error.name === "NotAllowedError") {
+            console.warn("Audio permission denied.");
+        } else if (error.name === "NotFoundError") {
+            console.warn("No Audio found on the device.");
         } else {
             console.error("An error occurred:", error);
         }
@@ -13367,6 +13387,50 @@ async function checkMediaPermissions() {
     } catch (error) {
         console.log('無法檢查權限:', error);
         connectError();
+        return false;
+    }
+}
+
+async function checkCameraPermissionEx() {
+    try {
+        if (navigator.permissions && navigator.permissions.query) {
+            // 檢查攝影機權限
+            const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+            console.log('Camera Permission:', cameraPermission.state);
+
+            // 檢查麥克風權限
+            const microphonePermission = await navigator.permissions.query({ name: 'microphone' });
+            console.log('Microphone Permission:', microphonePermission.state);
+
+            // 判斷是否有權限
+            if (cameraPermission.state === 'granted' && microphonePermission.state === 'granted') {
+                console.log('已取得攝影機和麥克風的權限');
+                return true;
+            } else {
+                //console.log('尚未取得完整權限');
+                let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            }
+        } else {
+            // 嘗試請求攝影機權限
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            console.log("Camera / Audio permission granted.");
+
+            // 停止攝影機流
+            stream.getTracks().forEach(track => track.stop());
+
+            return true;
+        }
+    } catch (error) {
+        if (error.name === "NotAllowedError") {
+            console.warn("Camera permission denied.");
+        } else if (error.name === "NotFoundError") {
+            console.warn("No camera found on the device.");
+        } else {
+            console.error("An error occurred:", error);
+        }
+
         return false;
     }
 }
@@ -13460,6 +13524,8 @@ async function getConstraints() {
             constraints = {
                 video: {
                     deviceId: { exact: CurrentVideoDevice.deviceId },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
                 }
             }
         }
@@ -13734,6 +13800,8 @@ async function fcChangeBaseImageSizeEx(vW, vH) {
     fcUpdateCropWin();
 }
 
+let facingMode = "unknow";
+
 async function startVideo() {
     const constraints = await getConstraints();
 
@@ -13756,6 +13824,8 @@ async function startVideo() {
             handleTrackEnded(); // 你的處理邏輯
         };
 
+        const settings = videoTrack.getSettings();
+        facingMode = settings.facingMode;
 
         videoElement.srcObject = window.stream;
 
@@ -13815,6 +13885,7 @@ async function stopVideo() {
 
 let lastTime = -1;
 let canvasGL;
+let canvasVideoOrg = null;
 let contextVideoOrg;
 
 async function updateVideoStreamFrame() {
@@ -13827,12 +13898,65 @@ async function updateVideoStreamFrame() {
     }
 
     if (!contextVideoOrg) {
-        let canvasVideoOrg = document.getElementById('previewArea-videoOrg');
+        canvasVideoOrg = document.getElementById('previewArea-videoOrg');
         contextVideoOrg = canvasVideoOrg.getContext('2d');
     }
 
     if (IsDeviceConnected) {
-        contextVideoOrg.drawImage(videoElement, 0, 0, videoW, videoH);
+        if (IsRecording) {
+            if (isMobileDevice) {
+                if (initialOrientation !== getCurrentRotation()) {
+                    const currentRotation = getCurrentRotation();
+                    let rotationDifference = 0;
+
+                    if (facingMode == "user") {
+                        rotationDifference = initialOrientation - currentRotation;
+                    } else {
+                        //environment
+                        rotationDifference = currentRotation - initialOrientation;
+                    }
+
+
+                    // 根據旋轉方向調整 canvas 的寬高
+                    if (Math.abs(rotationDifference) === 90 || Math.abs(rotationDifference) === 270) {
+                        canvasVideoOrg.width = videoElement.videoHeight;
+                        canvasVideoOrg.height = videoElement.videoWidth;
+                    } else {
+                        canvasVideoOrg.width = videoElement.videoWidth;
+                        canvasVideoOrg.height = videoElement.videoHeight;
+                    }
+
+                    // 清除畫布
+                    //contextVideoOrg.clearRect(0, 0, canvasVideoOrg.width, canvasVideoOrg.height);
+
+                    // 平移到中心點，進行反向旋轉修正
+                    contextVideoOrg.translate(canvasVideoOrg.width / 2, canvasVideoOrg.height / 2);
+                    contextVideoOrg.rotate((-rotationDifference * Math.PI) / 180);
+
+                    // 計算正確的縮放比例，讓畫面保持原比例
+                    // const scaleX = canvasVideoOrg.width / videoElement.videoWidth;
+                    // const scaleY = canvasVideoOrg.height / videoElement.videoHeight;
+                    // const scale = Math.max(scaleX, scaleY);  // 確保畫面不會有空白區域
+
+                    // 進行縮放並繪製影像
+                    //contextVideoOrg.scale(scale, scale);
+                    contextVideoOrg.drawImage(
+                        videoElement,
+                        -videoElement.videoWidth / 2,
+                        -videoElement.videoHeight / 2,
+                        videoElement.videoWidth,
+                        videoElement.videoHeight
+                    );
+
+                    // 重置變換矩陣
+                    contextVideoOrg.setTransform(1, 0, 0, 1, 0, 0);
+                } else {
+                    contextVideoOrg.drawImage(videoElement, 0, 0, videoW, videoH);
+                }
+            } else {
+                contextVideoOrg.drawImage(videoElement, 0, 0, videoW, videoH);
+            }
+        }
 
         // WebGL Render
         gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -14105,6 +14229,28 @@ async function showWebGL() {
     $('#displayCanvas').hide();
     $('#videoSrc').hide();
     $('#previewArea-WebGL').show();
+}
+
+function getCurrentRotation() {
+    return screen.orientation.angle || 0;  // 默認為 0 度
+}
+
+function getOrientation() {
+    // if (window.orientation !== undefined) {
+    //     switch (window.orientation) {
+    //         case 0:
+    //             return 'portrait';  // 直向正向
+    //         case 90:
+    //         case -90:
+    //             return 'landscape';  // 橫向
+    //         case 180:
+    //             return 'portrait';  // 直向反向
+    //     }
+    // } else {
+    //     // 若不支援 window.orientation，用媒體查詢方式
+    //     return window.matchMedia("(orientation: landscape)").matches ? 'landscape' : 'portrait';
+    // }
+    return window.matchMedia("(orientation: landscape)").matches ? 'landscape' : 'portrait';
 }
 
 function downloadBlob(blob, filename) {
